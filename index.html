@@ -13,7 +13,6 @@
 
     // Pipeline setup.
     gl.clearColor(.95, .95, .95, 1);
-    // Backface culling.
     gl.frontFace(gl.CCW);
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
@@ -24,7 +23,7 @@
         'attribute vec4 col;' +
         'varying vec4 color;' +
         'void main(){' + 'color = col;' +
-        'gl_Position = vec4(pos, 1);' +
+        'gl_Position = vec4(pos.x, pos.z, pos.y, 1);' + //z-Richtung mit eingestellt
         '}';
     var vs = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vs, vsSource);
@@ -51,8 +50,7 @@
     // Vertex data.
     // Positions, index data.
     var vertices, indices;
-    // Fill the data arrays.
-    createVertexData();
+    createVertexDataKidneySurface();
 
     // Setup position vertex buffer object.
     var vboPos = gl.createBuffer();
@@ -78,7 +76,56 @@
 
     // Clear framebuffer and render primitives.
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawElements(gl.LINE_STRIP, ibo.numberOfElements, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.LINES, ibo.numberOfElements, gl.UNSIGNED_SHORT, 0);
+
+    //Fläche 1: Kidney Surface
+    function createVertexDataKidneySurface() {
+        var n = 64;
+        var m = 32;
+
+        vertices = new Float32Array(3 * (n + 1) * (m + 1));
+        indices = new Uint16Array(2 * 2 * n * m);
+
+        var uMin = 0;
+        var uMax = 2 * Math.PI;
+        var vMin = -Math.PI / 2;
+        var vMax = Math.PI / 2;
+        var du = (uMax - uMin) / n;
+        var dv = (vMax - vMin) / m;
+        var iIndex = 0;
+
+        for (var i = 0, u = uMin; i <= n; i++, u += du) {
+            for (var j = 0, v = vMin; j <= m; j++, v += dv) {
+                var iVertex = i * (m + 1) + j;
+
+                var x = Math.cos(u) * (3 * Math.cos(v) - Math.cos(3 * v));
+                var y = Math.sin(u) * (3 * Math.cos(v) - Math.cos(3 * v));
+                var z = 3 * Math.sin(v) - Math.sin(3 * v);
+                var scale = 0.25;
+
+                x *= scale;
+                y *= scale;
+                z *= scale;
+
+                vertices[iVertex * 3] = x;
+                vertices[iVertex * 3 + 1] = y;
+                vertices[iVertex * 3 + 2] = z;
+
+                if (j > 0 && i > 0) {
+                    indices[iIndex++] = iVertex - 1;
+                    indices[iIndex++] = iVertex;
+                }
+                if (j > 0 && i > 0) {
+                    indices[iIndex++] = iVertex - (m + 1);
+                    indices[iIndex++] = iVertex;
+                }
+            }
+        }
+    }
+
+    function createVertexDataOwn() {
+
+    }
     </script>
 
     </body>
