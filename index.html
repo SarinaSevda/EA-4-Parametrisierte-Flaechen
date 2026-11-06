@@ -5,7 +5,7 @@
     <title>Title</title>
 </head>
 <body>
-<canvas id="canvas" width="500" height="500"></canvas>
+<canvas id="canvas" width="1000" height="1000"></canvas>
 <script>
     // Get the WebGL context.
     var canvas = document.getElementById('canvas');
@@ -49,34 +49,49 @@
 
     // Vertex data.
     // Positions, index data.
-    var vertices, indices;
+    var vertices, colors, indicesLines, indicesTris;
+
+    //Kidney
     createVertexDataKidneySurface();
+    var vboKidney = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboKidney);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-    // Setup position vertex buffer object.
-    var vboPos = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vboPos);
-    gl.bufferData(gl.ARRAY_BUFFER,
-        vertices, gl.STATIC_DRAW);
-    // Bind vertex buffer to attribute variable.
+    var iboKidney = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iboKidney);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    iboKidney.numberOfElements = indices.length;
+
+    // Ei
+    createVertexDataEi();
+    var vboEi = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboEi);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    var iboEi = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iboEi);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    iboEi.numberOfElements = indices.length;
+
+    //Position & Farbe
     var posAttrib = gl.getAttribLocation(prog, 'pos');
-    gl.vertexAttribPointer(posAttrib, 3,
-        gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(posAttrib);
-
-    // Setup constant color.
     var colAttrib = gl.getAttribLocation(prog, 'col');
     gl.vertexAttrib4f(colAttrib, 0, 0, 1, 1);
 
-    // Setup index buffer object.
-    var ibo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-        indices, gl.STATIC_DRAW);
-    ibo.numberOfElements = indices.length;
-
-    // Clear framebuffer and render primitives.
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawElements(gl.LINES, ibo.numberOfElements, gl.UNSIGNED_SHORT, 0);
+
+    //Kidney zeichenn
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboKidney);
+    gl.vertexAttribPointer(posAttrib, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iboKidney);
+    gl.drawElements(gl.LINES, iboKidney.numberOfElements, gl.UNSIGNED_SHORT, 0);
+
+    // Ei zeichnen.
+    gl.bindBuffer(gl.ARRAY_BUFFER, vboEi);
+    gl.vertexAttribPointer(posAttrib, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iboEi);
+    gl.drawElements(gl.LINES, iboEi.numberOfElements, gl.UNSIGNED_SHORT, 0);
 
     //Fläche 1: Kidney Surface
     function createVertexDataKidneySurface() {
@@ -101,11 +116,10 @@
                 var x = Math.cos(u) * (3 * Math.cos(v) - Math.cos(3 * v));
                 var y = Math.sin(u) * (3 * Math.cos(v) - Math.cos(3 * v));
                 var z = 3 * Math.sin(v) - Math.sin(3 * v);
-                var scale = 0.25;
 
-                x *= scale;
-                y *= scale;
-                z *= scale;
+                x = x * 0.13 - 0.5;
+                y *= 0.13;
+                z *= 0.13;
 
                 vertices[iVertex * 3] = x;
                 vertices[iVertex * 3 + 1] = y;
@@ -122,9 +136,54 @@
             }
         }
     }
+    //Fläche 1: Ei
+    function createVertexDataEi() {
+        var n = 64;
+        var m = 32;
 
-    function createVertexDataOwn() {
+        vertices = new Float32Array(3 * (n + 1) * (m + 1));
+        indices = new Uint16Array(2 * 2 * n * m);
 
+        var a = 1.0;
+        var b = 1.5;
+        var c = 1.2;
+        var uMin = 0;
+        var uMax = a;
+        var vMin = 0;
+        var vMax = 2 * Math.PI;
+        var du = (uMax - uMin) / n;
+        var dv = (vMax - vMin) / m;
+        var iIndex = 0;
+
+        for (var i = 0, u = uMin; i <= n; i++, u += du) {
+            for (var j = 0, v = vMin; j <= m; j++, v += dv) {
+                var iVertex = i * (m + 1) + j;
+
+                var r = c * Math.sqrt(u * (u - a) * (u - b));
+                var x = r * Math.sin(v);
+                var y = r * Math.cos(v);
+                var z = u;
+                var scaleX = 0.35;      // Breite
+                var scaleY = 0.35;      // Tiefe
+                var scaleZ = 0.85;      // Höhe
+
+                x = x * scaleX + 0.5;   // nach rechts schieben
+                y *= scaleY;
+                z = (z - a / 2) * scaleZ;
+
+                vertices[iVertex * 3] = x;
+                vertices[iVertex * 3 + 1] = y;
+                vertices[iVertex * 3 + 2] = z;
+
+                if (j > 0 && i > 0) {
+                    indices[iIndex++] = iVertex - 1;
+                    indices[iIndex++] = iVertex;
+
+                    indices[iIndex++] = iVertex - (m + 1);
+                    indices[iIndex++] = iVertex;
+                }
+            }
+        }
     }
     </script>
 
